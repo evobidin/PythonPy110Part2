@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<title>Login Form</title>
+	<title>Sign Up Form</title>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 <!--===============================================================================================-->	
@@ -36,68 +36,74 @@
 				<form action="." method="post" class="login100-form validate-form">
 					{% csrf_token %}
 					<span class="login100-form-title p-b-49">
-						Авторизация
+						Создать аккаунт
 					</span>
 
-					<div class="wrap-input100 validate-input m-b-23" data-validate = "Username обязателен">
+					<div class="wrap-input100 validate-input m-b-23" data-validate = "Обязательное поле">
 						<span class="label-input100">Имя пользователя (username)</span>
-						<input class="input100" type="text" name="username" placeholder="Введите свой username">
+						<input class="input100" type="text" name="username" placeholder="Введите ваш username">
 						<span class="focus-input100" data-symbol="&#xf206;"></span>
 					</div>
 
-					<div class="wrap-input100 validate-input" data-validate="Пароль обязателен">
+					{% if errors.username%}
+						<span class="txt1">
+						  {{errors.username}}
+						</span>
+					{% endif %}
+
+					<div class="wrap-input100 validate-input m-b-23" data-validate = "Обязательное поле">
+						<span class="label-input100">Адрес электронной почты (email)</span>
+						<input class="input100" type="text" name="email" placeholder="Введите ваш email">
+						<span class="focus-input100" data-symbol="&#x2709;"></span>
+					</div>
+
+					{% if errors.email%}
+						<span class="txt1">
+						  {{errors.email}}
+						</span>
+					{% endif %}
+
+					<div class="wrap-input100 validate-input" data-validate="Password is required">
 						<span class="label-input100">Пароль</span>
-						<input class="input100" type="password" name="password" placeholder="Введите свой пароль">
+						<input class="input100" type="password" name="password1" placeholder="Введите ваш пароль">
 						<span class="focus-input100" data-symbol="&#xf190;"></span>
 					</div>
-					
-					<div class="text-right p-t-8 p-b-31">
-						<a href="#">
-							Забыли пароль?
-						</a>
+
+					{% if errors.password1%}
+						<span class="txt1">
+						  {{errors.password1}}
+						</span>
+					{% endif %}
+
+					<div class="wrap-input100 validate-input" data-validate="Password is required">
+						<span class="label-input100">Пароль</span>
+						<input class="input100" type="password" name="password2" placeholder="Повторите ваш пароль">
+						<span class="focus-input100" data-symbol="&#xf190;"></span>
 					</div>
-					
+
+					{% if errors.password2%}
+						<span class="txt1">
+						  {{errors.password2}}
+						</span>
+					{% endif %}
+
+					<br>
 					<div class="container-login100-form-btn">
 						<div class="wrap-login100-form-btn">
 							<div class="login100-form-bgbtn"></div>
 							<button class="login100-form-btn">
-								Авторизоваться
+								Зарегистрироваться
 							</button>
 						</div>
 						{{error}}
 					</div>
-
-					<div class="txt1 text-center p-t-54 p-b-20">
-						<span>
-							Авторизоваться используя сторонние сервисы
-						</span>
-					</div>
-
-					<div class="flex-c-m">
-						<a href="{% url 'social:begin' 'github' %}" class="login100-social-item bg1">
-							<i class="fa fa-github"></i>
-						</a>
-
-						<a href="#" class="login100-social-item bg2">
-							<i class="fa fa-vk"></i>
-						</a>
-
-						<a href="#" class="login100-social-item bg3">
-							<i class="fa fa-google"></i>
-						</a>
-					</div>
-
-					<div class="flex-col-c p-t-155">
-					<span class="txt1 p-b-17">
-						Не регистрировались ранее?
-					</span>
-
-					<a href="{% url 'login:signup_view' %}" class="txt2">
-						Регистрация
+				</form>
+				<div class="flex-col-c p-t-155">
+					Уже есть аккаунт?
+					<a href="{% url 'login:login_view' %}" class="txt2">
+						Авторизироваться
 					</a>
 				</div>
-
-				</form>
 			</div>
 		</div>
 	</div>
