@@ -19,6 +19,7 @@ from django.urls import path, include
 from random import random
 from django.http import HttpResponse
 from app_datetime.views import datetime_view
+from project.settings import DEBUG
 
 
 def random_view(request):
@@ -33,7 +34,13 @@ urlpatterns = [
     path('datetime/', datetime_view),
     path('weather/', include('app_weather.urls')),
     path('', include('store.urls')),
+    path('cart/', include('cart.urls')),
     path('login/', include('app_login.urls')),
     path('wishlist/', include('wishlist.urls')),
     path('auth/', include('social_django.urls', namespace='social')),
 ]
+
+if DEBUG:
+    urlpatterns += [
+        path("__debug__/", include("debug_toolbar.urls")),
+    ]

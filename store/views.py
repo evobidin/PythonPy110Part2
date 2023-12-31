@@ -4,6 +4,9 @@ from .models import DATABASE
 from logic.services import filtering_category, view_in_cart, add_to_cart, remove_from_cart
 from django.contrib.auth import get_user
 from django.contrib.auth.decorators import login_required
+from .models import Product
+from django.db.models import F
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 
 def products_view(request):
@@ -32,122 +35,105 @@ def products_view(request):
 def products_page_view(request, page):
     if request.method == "GET":
         if isinstance(page, str):
-            for data in DATABASE.values():
-                if data['html'] == page:
-                    return render(request, "store/product.html", context={"product": data})
+            # Получение продукта по полю slug_name.
+            product = Product.objects.filter(slug_name=page)
+            # Создание запроса с дополнительными полями
+            # (поля сделаны так, чтобы минимизировать изменения в коде product.html)
+            product = product.annotate(
+                price_before=F("price"),
+                price_after=F("price_before") * (
+                            100 - F("discount__value")) / 100,
+                review=F("details__review_count"),
+                rating=F("details__rating_mean"),
+                sold_value=F("details__sold_value"),
+                weight_in_stock=F("details__quantity_in_stock"),
+            )
+            product = product.first()  # Получение первого элемента из QuerySet
+
+            return render(request, "store/product.html",
+                          context={"product": product})
 
         elif isinstance(page, int):
             # Обрабатываем условие того, что пытаемся получить страницу товара по его id
             data = DATABASE.get(str(page))  # Получаем какой странице соответствует данный id
-            if data:
-                return render(request, "store/product.html", context={"product": data})
+
+            # Можно сделать и одни запросом при помощи метода get. Метод get возвращает только один объект, всегда.
+            # get не возвращает QuerySet, поэтому после get нельзя делать аннотации, фильтры, и т.д.
+
+            product = Product.objects.annotate(
+                price_before=F("price"),
+                price_after=F("price_before") * (
+                        100 - F("discount__value")) / 100,
+                review=F("details__review_count"),
+                rating=F("details__rating_mean"),
+                sold_value=F("details__sold_value"),
+                weight_in_stock=F("details__quantity_in_stock"),
+            ).get(id=page)
+
+            return render(request, "store/product.html",
+                          context={"product": product})
 
         return HttpResponse(status=404)
 
 
-def products_page_view(request, page):  # для решения последней доп. задачи
-    limit = 5
-    if request.method == "GET":
-        if isinstance(page, str):
-            for data in DATABASE.values():
-                if data['html'] == page:
-                    data_category = filter(
-                        lambda x: x["id"] != data['id'],
-                        filtering_category(DATABASE, data['category']))
-                    return render(request, "store/product.html", context={"product": data,
-                                                                          "products_category": list(data_category)[
-                                                                                               :limit]})
-
-        elif isinstance(page, int):
-            # Обрабатываем условие того, что пытаемся получить страницу товара по его id
-            data = DATABASE.get(str(page))  # Получаем какой странице соответствует данный id
-            if data:
-                data_category = filter(
-                    lambda x: x["id"] != data['id'],
-                    filtering_category(DATABASE, data['category']))
-                return render(request, "store/product.html",
-                              context={"product": data,
-                                       "products_category": list(data_category)[:limit]})
-
-        return HttpResponse(status=404)
+# def products_page_view(request, page):  # для решения последней доп. задачи
+#     limit = 5
+#     if request.method == "GET":
+#         if isinstance(page, str):
+#             for data in DATABASE.values():
+#                 if data['html'] == page:
+#                     data_category = filter(
+#                         lambda x: x["id"] != data['id'],
+#                         filtering_category(DATABASE, data['category']))
+#                     return render(request, "store/product.html", context={"product": data,
+#                                                                           "products_category": list(data_category)[
+#                                                                                                :limit]})
+#
+#         elif isinstance(page, int):
+#             # Обрабатываем условие того, что пытаемся получить страницу товара по его id
+#             data = DATABASE.get(str(page))  # Получаем какой странице соответствует данный id
+#             if data:
+#                 data_category = filter(
+#                     lambda x: x["id"] != data['id'],
+#                     filtering_category(DATABASE, data['category']))
+#                 return render(request, "store/product.html",
+#                               context={"product": data,
+#                                        "products_category": list(data_category)[:limit]})
+#
+#         return HttpResponse(status=404)
 
 
 def shop_view(request):
     if request.method == "GET":
+        products = Product.objects.all().annotate(
+            price_before=F("price"),
+            price_after=F("price_before")*(100-F("discount__value"))/100
+        )
         # Обработка фильтрации из параметров запроса
-        category_key = request.GET.get("category")
-        if ordering_key := request.GET.get("ordering"):
-            if request.GET.get("reverse") in ('true', 'True'):
-                data = filtering_category(DATABASE, category_key, ordering_key, True)
+        if category_key := request.GET.get("category"):  # Если существует category в адресной строке
+            if ordering_key := request.GET.get("ordering"):   # Если существует ordering в адресной строке
+                if request.GET.get("reverse") in ('true', 'True'):
+                    data = products.filter(category__name=category_key).order_by(f"-{ordering_key}")
+                else:
+                    data = products.filter(category__name=category_key).order_by(ordering_key)
             else:
-                data = filtering_category(DATABASE, category_key, ordering_key)
+                data = products.filter(category__name=category_key)
         else:
-            data = filtering_category(DATABASE, category_key)
+            data = products
+
+        # # Добавляем пагинацию
+        # page = request.GET.get('page', 1)
+        # paginator = Paginator(data, 5)  # Разбиваем на 5 элементов на странице
+        # try:
+        #     data = paginator.page(page)
+        # except PageNotAnInteger:
+        #     data = paginator.page(1)
+        # except EmptyPage:
+        #     data = paginator.page(paginator.num_pages)
+        #
         return render(request, 'store/shop.html',
                       context={"products": data,
                                "category": category_key})
-
-
-@login_required(login_url='login:login_view')
-def cart_view(request):
-    if request.method == "GET":
-        current_user = get_user(request).username
-        data = view_in_cart(request)[current_user]
-        if request.GET.get('format') == 'JSON':
-            return JsonResponse(data, json_dumps_params={'ensure_ascii': False,
-                                                         'indent': 4})
-        products = []  # Список продуктов
-        for product_id, quantity in data['products'].items():
-            product = DATABASE.get(product_id)
-            product["quantity"] = quantity
-            product["price_total"] = f"{quantity * product['price_after']:.2f}"
-            products.append(product)
-
-        return render(request, "store/cart.html", context={"products": products})
-
-
-@login_required(login_url='login:login_view')
-def cart_buy_now_view(request, id_product):
-    if request.method == "GET":
-        result = add_to_cart(request, id_product)
-        if result:
-            return redirect("store:cart_view")
-
-        return HttpResponseNotFound("Неудачное добавление в корзину")
-
-
-def cart_remove_view(request, id_product):
-    if request.method == "GET":
-        result = remove_from_cart(request, id_product)
-        if result:
-            return redirect("store:cart_view")
-
-        return HttpResponseNotFound("Неудачное удаление из корзины")
-
-
-@login_required(login_url='login:login_view')
-def cart_add_view(request, id_product):
-    if request.method == "GET":
-        result = add_to_cart(request, id_product)
-        if result:
-            return JsonResponse({"answer": "Продукт успешно добавлен в корзину"},
-                                json_dumps_params={'ensure_ascii': False})
-
-        return JsonResponse({"answer": "Неудачное добавление в корзину"},
-                            status=404,
-                            json_dumps_params={'ensure_ascii': False})
-
-
-def cart_del_view(request, id_product):
-    if request.method == "GET":
-        result = remove_from_cart(request, id_product)
-        if result:
-            return JsonResponse({"answer": "Продукт успешно удалён из корзины"},
-                                json_dumps_params={'ensure_ascii': False})
-
-        return JsonResponse({"answer": "Неудачное удаление из корзины"},
-                            status=404,
-                            json_dumps_params={'ensure_ascii': False})
 
 
 def coupon_check_view(request, name_coupon):

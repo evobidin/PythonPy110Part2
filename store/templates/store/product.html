@@ -21,7 +21,7 @@
     	<div class="container">
     		<div class="row">
     			<div class="col-lg-6 mb-5 ftco-animate">
-    				<a href="{% static product.url %}" class="image-popup"><img src="{% static product.url %}" class="img-fluid" alt="Colorlib Template"></a>
+    				<a href="{{ product.image.url }}" class="image-popup"><img src="{{ product.image.url }}" class="img-fluid" alt="Colorlib Template"></a>
     			</div>
     			<div class="col-lg-6 product-details pl-md-5 ftco-animate">
     				<h3>{{product.name}}</h3>

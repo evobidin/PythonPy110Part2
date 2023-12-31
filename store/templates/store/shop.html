@@ -58,10 +58,10 @@
 			{% for product in products %}
 			<div class="col-md-6 col-lg-3 ftco-animate">
 				<div class="product">
-					<a href="{% url 'store:products_page_view' product.html %}" class="img-prod">
-						<img class="img-fluid" src="{% static product.url %}" alt="Colorlib Template">
+					<a href="{% url 'store:products_page_view' product.slug_name %}" class="img-prod">
+						<img class="img-fluid" src="{{ product.image.url }}" alt="Colorlib Template">
 						{% if product.discount %}
-						<span class="status">{{product.discount}}%</span>
+						<span class="status">{{product.discount.value}}%</span>
 						{% else %}
 						<div class="overlay"></div>
 						{% endif %}
@@ -73,7 +73,7 @@
 								<p class="price">
 									{% if product.discount %}
 									<span class="mr-2 price-dc">&#x20bd {{product.price_before}}</span>
-									<span class="price-sale">&#x20bd {{product.price_after}}</span>
+									<span class="price-sale">&#x20bd {{product.price_after|floatformat:2}}</span>
 									{% else %}
 									<span>&#x20bd {{product.price_before}}</span>
 									{% endif %}
@@ -85,7 +85,7 @@
 								<a href="#" id="add-to-cart" class="add-to-cart d-flex justify-content-center align-items-center text-center" data-product-id="{{product.id}}">
 									<span><i class="ion-ios-add-circle-outline" data-product-id="{{product.id}}"></i></span>
 								</a>
-								<a href="{% url 'store:buy_now' product.id %}" class="buy-now d-flex justify-content-center align-items-center mx-1">
+								<a href="{% url 'cart:buy_now' product.id %}" class="buy-now d-flex justify-content-center align-items-center mx-1">
 									<span><i class="ion-ios-cart"></i></span>
 								</a>
 								<a href="#" class="heart d-flex justify-content-center align-items-center">
